@@ -28,21 +28,27 @@
 
 ## 快速安装
 
-```bash
-# 下载安装包
-git clone https://github.com/i8j888/wztseo.git
-cd wztseo
+一行命令安装：
 
-# 一键安装
-chmod +x install.sh
-sudo ./install.sh
+```bash
+bash <(curl -sL https://raw.githubusercontent.com/i8j888/wztseo/main/install.sh)
 ```
+
+脚本自动完成：下载二进制 → 系统调优 → 安装 ClickHouse（可选）→ 配置 systemd → 启动服务
 
 安装完成后访问: `http://服务器IP:8081/admin/`
 
 - 默认账号: `admin`
 - 默认密码: `admin123`
 - 安全码: `1314`
+
+### 更新
+
+同样一行命令，脚本自动检测已安装版本并更新：
+
+```bash
+bash <(curl -sL https://raw.githubusercontent.com/i8j888/wztseo/main/install.sh)
+```
 
 ## 架构
 
@@ -136,18 +142,6 @@ systemctl stop spider-pool spider-admin
 │   ├── keywords/            # 关键词库
 │   └── articles/            # 文章数据
 ```
-
-## 更新
-
-```bash
-# 下载新版本
-cd wztseo && git pull
-
-# 运行安装脚本（自动停止旧服务、替换二进制、重启）
-sudo ./install.sh
-```
-
-数据库和配置会保留，只更新二进制文件。
 
 ## License
 
