@@ -30,15 +30,15 @@
 
 | 系统 | 推荐版本 | 最低版本 | 状态 |
 |------|---------|---------|------|
-| Debian | **12** (推荐) | 11 | ✅ |
-| Ubuntu | **22.04** (推荐) | 20.04 | ✅ |
+| Debian | **12** (推荐) | 12 | ✅ |
+| Ubuntu | **22.04** (推荐) | 22.04 | ✅ |
 | CentOS Stream | **9** | 9 | ✅ |
 | Rocky Linux | **9** | 9 | ✅ |
 | AlmaLinux | **9** | 9 | ✅ |
 
 > **推荐使用 Debian 12 或 Ubuntu 22.04**，稳定性和兼容性最好。
 >
-> 不支持：CentOS 7/8（已停止维护）、ARM 架构、Windows、macOS。
+> 不支持：Debian 11 及以下、Ubuntu 20.04 及以下、CentOS 7/8、ARM 架构、Windows、macOS。
 
 ## 快速安装
 
@@ -236,6 +236,15 @@ journalctl -u spider-admin -f
 
 # 停止服务
 systemctl stop spider-pool spider-admin
+
+# 查看版本
+/opt/spider-pool/spider-pool --version
+
+# 重置管理员密码和安全码（忘记密码时使用）
+systemctl stop spider-admin
+/opt/spider-pool/spider-pool --reset-admin
+systemctl start spider-admin
+# 重置后: 账号 admin / 密码 admin123 / 安全码 1314
 ```
 
 ## 目录结构

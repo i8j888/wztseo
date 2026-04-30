@@ -8,7 +8,7 @@ INSTALL_DIR="/opt/spider-pool"
 DATA_DIR="$INSTALL_DIR/data"
 BIN_NAME="spider-pool"
 GITHUB_REPO="i8j888/wztseo"
-VERSION="v2.10.320"
+VERSION="v2.10.321"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
