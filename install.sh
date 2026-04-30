@@ -178,6 +178,17 @@ EOF
         sysctl -p >/dev/null 2>&1
     fi
 
+    # 防火墙放行端口
+    if command -v firewall-cmd >/dev/null 2>&1 && firewall-cmd --state >/dev/null 2>&1; then
+        log "防火墙放行 8080/8081 端口..."
+        firewall-cmd --permanent --add-port=8080/tcp --add-port=8081/tcp >/dev/null 2>&1
+        firewall-cmd --reload >/dev/null 2>&1
+    elif command -v ufw >/dev/null 2>&1 && ufw status | grep -q "active"; then
+        log "防火墙放行 8080/8081 端口..."
+        ufw allow 8080/tcp >/dev/null 2>&1
+        ufw allow 8081/tcp >/dev/null 2>&1
+    fi
+
     # ── 安装 ClickHouse（可选）────────────────────────
     if ! command -v clickhouse-client >/dev/null 2>&1; then
         echo ""
