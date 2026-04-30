@@ -60,6 +60,99 @@ bash <(curl -sL https://raw.githubusercontent.com/i8j888/wztseo/main/install.sh)
 bash <(curl -sL https://raw.githubusercontent.com/i8j888/wztseo/main/install.sh)
 ```
 
+### 手动部署
+
+如果一键脚本无法使用（网络受限等），可以手动部署：
+
+```bash
+# 1. 下载二进制（在能访问GitHub的机器上下载，再传到服务器）
+wget https://github.com/i8j888/wztseo/raw/main/spider-pool-linux-amd64
+
+# 2. 上传到服务器（从本地传到服务器）
+scp spider-pool-linux-amd64 root@你的服务器IP:/opt/spider-pool/spider-pool
+
+# 3. SSH登录服务器，设置权限
+ssh root@你的服务器IP
+mkdir -p /opt/spider-pool/data/{templates,keywords,article,body,pic,webname,keyword,link,diy}
+chmod +x /opt/spider-pool/spider-pool
+
+# 4. 创建 systemd 服务
+# spider-pool 蜘蛛池进程
+cat > /etc/systemd/system/spider-pool.service << 'EOF'
+[Unit]
+Description=WanZhanTong - Spider Process
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/spider-pool
+ExecStart=/opt/spider-pool/spider-pool --mode=spider
+Environment=GOMEMLIMIT=30GiB
+Environment=GOGC=200
+Restart=always
+RestartSec=3
+LimitNOFILE=1048576
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# spider-admin 后台管理进程
+cat > /etc/systemd/system/spider-admin.service << 'EOF'
+[Unit]
+Description=WanZhanTong - Admin Process
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/spider-pool
+ExecStart=/opt/spider-pool/spider-pool --mode=admin
+Restart=always
+RestartSec=3
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# 5. 启动服务
+systemctl daemon-reload
+systemctl enable spider-pool spider-admin
+systemctl start spider-pool spider-admin
+
+# 6. 验证
+systemctl status spider-pool
+systemctl status spider-admin
+```
+
+安装完成后访问: `http://服务器IP:8081/admin/`
+
+> **注意**: 手动部署不包含系统调优和 ClickHouse 安装。如需 ClickHouse（蜘蛛日志统计），请参考 [ClickHouse 官方文档](https://clickhouse.com/docs/en/install) 单独安装。
+
+### 手动更新
+
+```bash
+# 停止服务
+systemctl stop spider-pool spider-admin
+
+# 备份旧版本
+cp /opt/spider-pool/spider-pool /opt/spider-pool/spider-pool.bak
+
+# 替换二进制（从本地上传或直接下载）
+scp spider-pool-linux-amd64 root@服务器IP:/opt/spider-pool/spider-pool
+# 或在服务器上直接下载:
+# wget -O /opt/spider-pool/spider-pool https://github.com/i8j888/wztseo/raw/main/spider-pool-linux-amd64
+
+chmod +x /opt/spider-pool/spider-pool
+
+# 重启服务
+systemctl start spider-pool spider-admin
+```
+
+数据库和配置会保留，只更新二进制文件。
+
 ## 架构
 
 ```
