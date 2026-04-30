@@ -35,13 +35,19 @@ ARCH=$(uname -m)
 
 if [ -f /etc/debian_version ]; then
     OS="debian"
-elif [ -f /etc/redhat-release ]; then
+    PKG_CMD="apt-get"
+elif [ -f /etc/redhat-release ] || [ -f /etc/centos-release ] || [ -f /etc/system-release ]; then
     OS="centos"
+    if command -v dnf >/dev/null 2>&1; then
+        PKG_CMD="dnf"
+    else
+        PKG_CMD="yum"
+    fi
 else
     OS="unknown"
     warn "未识别的系统，将尝试继续"
 fi
-info "系统: $OS | 架构: $ARCH"
+info "系统: $OS | 架构: $ARCH | 包管理器: ${PKG_CMD:-none}"
 
 # 检查是否为更新
 IS_UPDATE=0
@@ -54,9 +60,9 @@ fi
 log "检查依赖..."
 if [ "$OS" = "debian" ]; then
     apt-get update -qq >/dev/null 2>&1
-    apt-get install -y -qq curl wget sqlite3 >/dev/null 2>&1
+    apt-get install -y -qq curl wget ca-certificates >/dev/null 2>&1
 elif [ "$OS" = "centos" ]; then
-    yum install -y -q curl wget sqlite >/dev/null 2>&1
+    $PKG_CMD install -y -q curl wget ca-certificates >/dev/null 2>&1
 fi
 
 # ── 创建目录 ──────────────────────────────────────────
@@ -69,18 +75,18 @@ DOWNLOAD_URL="https://github.com/$GITHUB_REPO/raw/main/spider-pool-linux-amd64"
 TMP_BIN="/tmp/$BIN_NAME-new"
 
 log "下载二进制文件 ($VERSION)..."
-if command -v wget >/dev/null 2>&1; then
-    wget -q --show-progress -O "$TMP_BIN" "$DOWNLOAD_URL" || err "下载失败，请检查网络"
-elif command -v curl >/dev/null 2>&1; then
+if command -v curl >/dev/null 2>&1; then
     curl -L --progress-bar -o "$TMP_BIN" "$DOWNLOAD_URL" || err "下载失败，请检查网络"
+elif command -v wget >/dev/null 2>&1; then
+    wget -q -O "$TMP_BIN" "$DOWNLOAD_URL" || err "下载失败，请检查网络"
 else
-    err "需要 wget 或 curl"
+    err "需要 curl 或 wget"
 fi
 
 # 验证文件
 FILE_SIZE=$(stat -c%s "$TMP_BIN" 2>/dev/null || stat -f%z "$TMP_BIN" 2>/dev/null)
 [ "$FILE_SIZE" -lt 1000000 ] && err "下载的文件太小 (${FILE_SIZE} bytes)，可能下载失败"
-log "下载完成 ($(echo "scale=1; $FILE_SIZE/1048576" | bc)MB)"
+log "下载完成 ($((FILE_SIZE/1048576))MB)"
 
 # ── 停止旧服务 ────────────────────────────────────────
 if systemctl is-active --quiet spider-pool 2>/dev/null; then
@@ -159,9 +165,9 @@ EOF
                 apt-get update -qq >/dev/null 2>&1
                 DEBIAN_FRONTEND=noninteractive apt-get install -y -qq clickhouse-server clickhouse-client >/dev/null 2>&1
             elif [ "$OS" = "centos" ]; then
-                yum install -y -q yum-utils >/dev/null 2>&1
+                $PKG_CMD install -y -q yum-utils >/dev/null 2>&1
                 yum-config-manager --add-repo https://packages.clickhouse.com/rpm/clickhouse.repo >/dev/null 2>&1
-                yum install -y -q clickhouse-server clickhouse-client >/dev/null 2>&1
+                $PKG_CMD install -y -q clickhouse-server clickhouse-client >/dev/null 2>&1
             fi
             systemctl enable clickhouse-server >/dev/null 2>&1
             systemctl start clickhouse-server
