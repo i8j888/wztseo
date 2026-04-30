@@ -225,6 +225,24 @@ PARTITION BY date
 ORDER BY (date, spider_type, domain, created_at)
 TTL date + toIntervalDay(30)
 SETTINGS index_granularity = 8192;
+
+CREATE TABLE IF NOT EXISTS spider.logs_heat_hourly (
+    hour DateTime,
+    spider_type LowCardinality(String),
+    root_domain LowCardinality(String),
+    cnt UInt64
+) ENGINE = SummingMergeTree
+ORDER BY (hour, spider_type, root_domain);
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS spider.logs_heat_hourly_mv
+TO spider.logs_heat_hourly AS
+SELECT
+    toStartOfHour(created_at) AS hour,
+    spider_type,
+    domain AS root_domain,
+    count() AS cnt
+FROM spider.logs
+GROUP BY hour, spider_type, root_domain;
 SQL
             log "ClickHouse 安装完成"
         else
@@ -289,10 +307,15 @@ log "启动服务..."
 systemctl daemon-reload
 systemctl start spider-pool
 systemctl start spider-admin
-sleep 3
+sleep 5
 
-SP_STATUS=$(systemctl is-active spider-pool 2>/dev/null || echo "failed")
-SA_STATUS=$(systemctl is-active spider-admin 2>/dev/null || echo "failed")
+# 等待服务就绪
+for i in 1 2 3; do
+    SP_STATUS=$(systemctl is-active spider-pool 2>/dev/null || echo "failed")
+    SA_STATUS=$(systemctl is-active spider-admin 2>/dev/null || echo "failed")
+    [ "$SP_STATUS" = "active" ] && [ "$SA_STATUS" = "active" ] && break
+    sleep 3
+done
 
 # ── 获取服务器IP ──────────────────────────────────────
 SERVER_IP=$(curl -s --max-time 3 ifconfig.me 2>/dev/null || curl -s --max-time 3 ip.sb 2>/dev/null || echo "服务器IP")
