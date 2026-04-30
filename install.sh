@@ -109,6 +109,40 @@ log "安装二进制..."
 mv "$TMP_BIN" "$INSTALL_DIR/$BIN_NAME"
 chmod +x "$INSTALL_DIR/$BIN_NAME"
 
+# 修复 SELinux 标签（CentOS/RHEL 系统从 /tmp mv 的文件标签不对）
+if command -v restorecon >/dev/null 2>&1; then
+    chcon -t bin_t "$INSTALL_DIR/$BIN_NAME" 2>/dev/null
+fi
+
+# ── 创建默认配置文件（仅首次安装）────────────────────
+if [ ! -f "$INSTALL_DIR/config/config.yaml" ]; then
+    log "创建默认配置..."
+    mkdir -p "$INSTALL_DIR/config"
+    cat > "$INSTALL_DIR/config/config.yaml" << 'CFGEOF'
+server:
+  listen: ":8080"
+  read_timeout: 10
+  write_timeout: 30
+
+cache:
+  enabled: true
+  max_size: 2000
+  ttl: 300
+
+log:
+  level: "info"
+
+defaults:
+  redirect_url: ""
+  robots_text: |
+    User-agent: *
+    Allow: /
+    Sitemap: /sitemap.xml
+
+data_dir: "./data"
+CFGEOF
+fi
+
 # ── 系统调优（仅首次安装）────────────────────────────
 if [ "$IS_UPDATE" -eq 0 ]; then
     log "系统调优..."
